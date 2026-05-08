@@ -30,7 +30,7 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/double-sens-asso/DSWebsite:latest
-            ghcr.io/double-sens-asso/DSWebsite:${{ github.sha }}
+            ghcr.io/double-sens-asso/dswebsite:latest
+            ghcr.io/double-sens-asso/dswebsite:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
