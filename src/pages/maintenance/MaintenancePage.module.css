@@ -1,0 +1,151 @@
+.page {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  padding: 24px;
+  color: #e5e7ec;
+  background: radial-gradient(ellipse at 50% 50%, #1a1a2e 0%, #0a0a14 70%);
+}
+
+.backgroundGlow {
+  position: absolute;
+  inset: -25%;
+  background:
+    radial-gradient(circle at 30% 40%, rgb(255 43 214 / 22%), transparent 55%),
+    radial-gradient(circle at 70% 60%, rgb(0 229 255 / 22%), transparent 55%);
+  filter: blur(50px);
+  pointer-events: none;
+  animation: drift 14s ease-in-out infinite alternate;
+}
+
+.content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: min(100%, 560px);
+  text-align: center;
+}
+
+.logo {
+  width: 88px;
+  height: 88px;
+  object-fit: contain;
+  margin-bottom: 32px;
+  filter:
+    drop-shadow(0 0 18px rgb(0 229 255 / 35%))
+    drop-shadow(0 0 28px rgb(255 43 214 / 25%));
+}
+
+.errorCode {
+  position: relative;
+  display: inline-block;
+  margin: 0 0 24px;
+  font-family: var(--font-mono);
+  font-size: clamp(112px, 22vw, 220px);
+  font-weight: 800;
+  line-height: 1;
+}
+
+.errorCodeValue {
+  position: relative;
+  color: #f5f5fa;
+  text-shadow: 0 0 30px rgb(255 255 255 / 18%);
+}
+
+.errorCodeCyan,
+.errorCodeMagenta {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+
+.errorCodeCyan {
+  color: var(--brand-cyan);
+  text-shadow: 0 0 20px rgb(0 229 255 / 75%);
+  transform: translate(-4px, 0);
+  animation: glitchCyan 4.5s infinite ease-in-out;
+}
+
+.errorCodeMagenta {
+  color: var(--brand-magenta);
+  text-shadow: 0 0 20px rgb(255 43 214 / 75%);
+  transform: translate(4px, 0);
+  animation: glitchMagenta 4.5s infinite ease-in-out;
+}
+
+.message {
+  max-width: 480px;
+  margin: 0;
+  color: #c8cad6;
+  font-size: clamp(16px, 2vw, 18px);
+  line-height: 1.55;
+}
+
+@keyframes drift {
+  from {
+    transform: translate(0, 0) scale(1);
+  }
+
+  to {
+    transform: translate(3%, -3%) scale(1.05);
+  }
+}
+
+@keyframes glitchCyan {
+  0%,
+  100% {
+    transform: translate(-4px, 0);
+  }
+
+  18% {
+    transform: translate(-7px, 1px);
+  }
+
+  22% {
+    transform: translate(-3px, -1px);
+  }
+
+  48% {
+    transform: translate(-5px, 0);
+  }
+
+  72% {
+    transform: translate(-8px, 1px);
+  }
+}
+
+@keyframes glitchMagenta {
+  0%,
+  100% {
+    transform: translate(4px, 0);
+  }
+
+  18% {
+    transform: translate(7px, -1px);
+  }
+
+  22% {
+    transform: translate(3px, 1px);
+  }
+
+  48% {
+    transform: translate(5px, 0);
+  }
+
+  72% {
+    transform: translate(8px, -1px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .backgroundGlow,
+  .errorCodeCyan,
+  .errorCodeMagenta {
+    animation: none;
+  }
+}

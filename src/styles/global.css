@@ -1,0 +1,48 @@
+:root {
+  --color-text: #6b6375;
+  --color-heading: #08060d;
+  --color-background: #fff;
+  --color-border: #e5e4e7;
+  --brand-cyan: #00e5ff;
+  --brand-magenta: #ff2bd6;
+  --font-sans: system-ui, -apple-system, 'Segoe UI', roboto, sans-serif;
+  --font-mono: ui-monospace, 'JetBrains Mono', consolas, monospace;
+
+  font: 16px/1.5 var(--font-sans);
+  color: var(--color-text);
+  background: var(--color-background);
+  color-scheme: light dark;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-text: #9ca3af;
+    --color-heading: #f3f4f6;
+    --color-background: #0a0a14;
+    --color-border: #2e303a;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100svh;
+  margin: 0;
+}
+
+body {
+  min-width: 320px;
+}
+
+#root {
+  min-height: 100svh;
+}
