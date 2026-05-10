@@ -1,0 +1,1296 @@
+<!DOCTYPE html>
+<html lang="fr" data-lt-installed="true"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta charset="UTF-8">
+<title>Guide d'utilisation — DSAuthentificator (Double Sens)</title>
+<style>
+  /* ===========================================================
+     MARGES DE PAGE — défense en profondeur :
+     1) @page : pour weasyprint, Chrome headless, Prince, etc.
+     2) Les flags CLI --margin-* du convertisseur servent de
+        secours pour wkhtmltopdf qui ne respecte pas toujours @page.
+     3) La couverture utilise une marge négative pour ressortir
+        en pleine page malgré ces marges.
+     =========================================================== */
+  @page {
+    size: A4;
+    margin: 18mm 16mm 20mm 16mm;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    font-family: "Helvetica", "Arial", sans-serif;
+    font-size: 10.5pt;
+    line-height: 1.55;
+    color: #1f2937;
+    /* Évite les lignes orphelines/veuves en bas/haut de page */
+    orphans: 3;
+    widows: 3;
+  }
+
+  * { box-sizing: border-box; }
+
+  /* === COULEURS DOUBLE SENS === */
+
+  .page {
+    width: 100%;
+    page-break-after: always;
+    break-after: page;
+    position: relative;
+  }
+  .page:last-child {
+    page-break-after: auto;
+    break-after: auto;
+  }
+
+  /* Les titres ne doivent jamais rester seuls en bas de page */
+  h1, h2, h3, h4 {
+    page-break-after: avoid;
+    break-after: avoid;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Empêcher la coupure entre un titre et son premier paragraphe */
+  h1 + *, h2 + *, h3 + * {
+    page-break-before: avoid;
+    break-before: avoid;
+  }
+
+  /* Termes de glossaire : garder le terme avec sa définition */
+  dt {
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+  dd {
+    page-break-before: avoid;
+    break-before: avoid;
+  }
+
+  /* === COUVERTURE === */
+  .cover {
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    background: linear-gradient(135deg, #0891b2 0%, #0e7490 50%, #be185d 100%);
+    color: #ffffff;
+    page-break-after: always;
+    break-after: page;
+    position: relative;
+    overflow: hidden;
+  }
+  .cover-accent {
+    position: absolute;
+    top: -30mm;
+    right: -40mm;
+    width: 110mm;
+    bottom: -30mm;
+    background: linear-gradient(180deg, #ec4899 0%, #be185d 100%);
+    transform: skewX(-10deg);
+    opacity: 0.85;
+  }
+  .cover-accent-2 {
+    position: absolute;
+    top: -10mm;
+    right: -90mm;
+    width: 80mm;
+    bottom: -10mm;
+    background: #06b6d4;
+    transform: skewX(-10deg);
+    opacity: 0.6;
+  }
+  .cover-content {
+    position: relative;
+    padding: 30mm 25mm 30mm 25mm;
+    height: 100%;
+  }
+  .cover-logo {
+    width: 38mm;
+    height: 38mm;
+    background: white;
+    border-radius: 50%;
+    padding: 2mm;
+    margin-bottom: 18mm;
+    box-shadow: 0 0 30px rgba(255,255,255,0.3);
+  }
+  .cover-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+  .cover-eyebrow {
+    font-size: 10pt;
+    letter-spacing: 4pt;
+    text-transform: uppercase;
+    margin-bottom: 8mm;
+    color: #cffafe;
+  }
+  .cover-title {
+    font-size: 42pt;
+    font-weight: 700;
+    line-height: 1.05;
+    margin: 0 0 6mm 0;
+    color: #ffffff;
+    letter-spacing: -0.5pt;
+  }
+  .cover-subtitle {
+    font-size: 17pt;
+    font-weight: 300;
+    color: #ecfeff;
+    line-height: 1.4;
+    max-width: 130mm;
+  }
+  .cover-meta {
+    position: absolute;
+    bottom: 30mm;
+    left: 25mm;
+    right: 25mm;
+    border-top: 1px solid rgba(255,255,255,0.4);
+    padding-top: 8mm;
+    font-size: 10pt;
+    color: #ecfeff;
+  }
+  .cover-meta div { margin-bottom: 2mm; }
+  .cover-meta strong { font-weight: 600; color: #ffffff; }
+  .cover-mark {
+    position: absolute;
+    bottom: 12mm;
+    left: 25mm;
+    font-size: 9pt;
+    letter-spacing: 2pt;
+    text-transform: uppercase;
+    color: #ffffff;
+    opacity: 0.7;
+  }
+  .cover-org {
+    position: absolute;
+    bottom: 12mm;
+    right: 25mm;
+    font-size: 9pt;
+    color: #ffffff;
+    opacity: 0.7;
+    text-align: right;
+  }
+
+  /* === SOMMAIRE === */
+  .toc h1 {
+    font-size: 22pt;
+    color: #0891b2;
+    border-bottom: 2px solid #0891b2;
+    padding-bottom: 4mm;
+    margin: 0 0 10mm 0;
+  }
+  .toc-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .toc-list li {
+    padding: 3.5mm 0;
+    border-bottom: 1px dotted #cbd5e1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11pt;
+  }
+  .toc-list .toc-num {
+    color: #0891b2;
+    font-weight: 600;
+    margin-right: 4mm;
+    min-width: 8mm;
+    display: inline-block;
+  }
+  .toc-page {
+    color: #64748b;
+    font-weight: 600;
+  }
+
+  /* === SECTIONS === */
+  h1 {
+    font-size: 20pt;
+    color: #0891b2;
+    margin: 0 0 6mm 0;
+    padding-bottom: 3mm;
+    border-bottom: 2px solid #0891b2;
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+  h2 {
+    font-size: 13.5pt;
+    color: #be185d;
+    margin: 7mm 0 2.5mm 0;
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+  h3 {
+    font-size: 12pt;
+    color: #334155;
+    margin: 5mm 0 2mm 0;
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+  p { margin: 0 0 3mm 0; text-align: justify; }
+
+  /* === ENCADRÉS === */
+  .callout {
+    border-left: 4px solid;
+    padding: 4mm 5mm;
+    margin: 4mm 0;
+    background: #f8fafc;
+    border-radius: 0 3px 3px 0;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .callout-title {
+    font-weight: 700;
+    margin-bottom: 1.5mm;
+    font-size: 10.5pt;
+  }
+  .callout-info { border-color: #0891b2; background: #ecfeff; }
+  .callout-info .callout-title { color: #155e75; }
+  .callout-warn { border-color: #f59e0b; background: #fffbeb; }
+  .callout-warn .callout-title { color: #92400e; }
+  .callout-tip { border-color: #10b981; background: #ecfdf5; }
+  .callout-tip .callout-title { color: #065f46; }
+  .callout-danger { border-color: #ef4444; background: #fef2f2; }
+  .callout-danger .callout-title { color: #991b1b; }
+  .callout-magenta { border-color: #ec4899; background: #fdf2f8; }
+  .callout-magenta .callout-title { color: #be185d; }
+
+  /* === ÉTAPES NUMÉROTÉES === */
+  .steps {
+    counter-reset: step;
+    list-style: none;
+    padding: 0;
+    margin: 5mm 0;
+  }
+  .steps > li {
+    counter-increment: step;
+    position: relative;
+    padding: 0 0 7mm 14mm;
+    margin: 0;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .steps > li::before {
+    content: counter(step);
+    position: absolute;
+    left: 0;
+    top: -1mm;
+    width: 9mm;
+    height: 9mm;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #0891b2 0%, #ec4899 100%);
+    color: white;
+    text-align: center;
+    line-height: 9mm;
+    font-weight: 700;
+    font-size: 11pt;
+  }
+  .step-title {
+    font-weight: 700;
+    color: #0891b2;
+    font-size: 11.5pt;
+    margin-bottom: 2mm;
+  }
+
+  /* === TABLEAUX === */
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 3mm 0 5mm 0;
+    font-size: 9.8pt;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  th {
+    background: #0891b2;
+    color: white;
+    text-align: left;
+    padding: 2.8mm 3mm;
+    font-weight: 600;
+  }
+  td {
+    padding: 2.8mm 3mm;
+    border-bottom: 1px solid #e2e8f0;
+    vertical-align: top;
+  }
+  tr:nth-child(even) td { background: #f8fafc; }
+
+  /* === CODE === */
+  code {
+    font-family: "Courier New", monospace;
+    background: #ecfeff;
+    color: #0e7490;
+    padding: 0.5mm 1.8mm;
+    border-radius: 2px;
+    font-size: 9.8pt;
+    border: 1px solid #a5f3fc;
+    font-weight: 600;
+  }
+
+  /* === CARTE COMMANDE === */
+  .cmd-card {
+    border: 1px solid #e2e8f0;
+    border-left: 3px solid #0891b2;
+    border-radius: 0 4px 4px 0;
+    padding: 4mm 5mm;
+    margin: 3mm 0;
+    page-break-inside: avoid;
+    break-inside: avoid;
+    background: #ffffff;
+  }
+  .cmd-card-header {
+    margin-bottom: 2mm;
+  }
+  .cmd-card-name {
+    font-family: "Courier New", monospace;
+    font-size: 12pt;
+    font-weight: 700;
+    color: #0891b2;
+  }
+  .cmd-card-badge {
+    font-size: 8pt;
+    text-transform: uppercase;
+    letter-spacing: 0.5pt;
+    padding: 0.5mm 2mm;
+    border-radius: 2px;
+    font-weight: 600;
+    margin-left: 4mm;
+    vertical-align: middle;
+  }
+  .badge-public { background: #cffafe; color: #155e75; }
+  .badge-admin { background: #fce7f3; color: #be185d; }
+  .cmd-card-desc { margin: 0; font-size: 10pt; }
+
+  /* === FAQ === */
+  .faq-item {
+    border-bottom: 1px solid #e2e8f0;
+    padding: 4mm 0;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .faq-q {
+    font-weight: 700;
+    color: #0891b2;
+    margin-bottom: 2mm;
+    font-size: 10.5pt;
+  }
+  .faq-q::before {
+    content: "Q. ";
+    color: #ec4899;
+  }
+  .faq-a::before {
+    content: "R. ";
+    color: #ec4899;
+    font-weight: 700;
+  }
+
+  /* === GLOSSAIRE === */
+  .gloss-list { margin: 0; padding: 0; }
+  .gloss-list dt {
+    font-weight: 700;
+    color: #0891b2;
+    margin-top: 3.5mm;
+    font-size: 10.8pt;
+  }
+  .gloss-list dt:first-child { margin-top: 0; }
+  .gloss-list dd {
+    margin: 0.5mm 0 0 0;
+    padding-left: 4mm;
+  }
+
+  /* === FOOTER === */
+  .doc-footer {
+    text-align: center;
+    color: #94a3b8;
+    font-size: 8.5pt;
+    margin-top: 12mm;
+    padding-top: 4mm;
+    border-top: 1px solid #e2e8f0;
+  }
+
+  /* Mini contact card */
+  .contact-card {
+    background: linear-gradient(135deg, #ecfeff 0%, #fdf2f8 100%);
+    border: 1px solid #a5f3fc;
+    border-radius: 4px;
+    padding: 5mm 6mm;
+    margin: 5mm 0;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .contact-card-title {
+    font-weight: 700;
+    color: #0891b2;
+    font-size: 11pt;
+    margin-bottom: 2mm;
+  }
+
+  ul, ol { padding-left: 6mm; margin: 2mm 0 4mm 0; }
+  li { margin-bottom: 1mm; }
+  strong { color: #0f172a; }
+  em { color: #64748b; }
+</style>
+</head>
+<body>
+
+<!-- ============ COUVERTURE ============ -->
+<div class="cover">
+  <div class="cover-accent-2"></div>
+  <div class="cover-accent"></div>
+  <div class="cover-content">
+    <div class="cover-logo">
+      <img src="data:image/png;base64,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" alt="Logo Double Sens">
+    </div>
+    <div class="cover-eyebrow">Guide d'utilisation</div>
+    <div class="cover-title">DSAuthentificator</div>
+    <div class="cover-subtitle">Comment vérifier votre adhésion<br>sur le serveur Discord de Double Sens</div>
+    <div class="cover-meta">
+      <div><strong>Pour :</strong> les adhérent.e.s de Double Sens</div>
+      <div><strong>Version :</strong> 1.3 — Mai 2026</div>
+    </div>
+    <div class="cover-mark">Édition Adhérent.e.s</div>
+    <div class="cover-org">Association Double Sens</div>
+  </div>
+</div>
+
+<!-- ============ SOMMAIRE ============ -->
+<div class="page toc">
+  <h1>Sommaire</h1>
+  <ol class="toc-list">
+    <li><span><span class="toc-num">1.</span>Bienvenue — à quoi sert ce guide ?</span><span class="toc-page">3</span></li>
+    <li><span><span class="toc-num">2.</span>Discord, c'est quoi ?</span><span class="toc-page">4</span></li>
+    <li><span><span class="toc-num">3.</span>Avant de commencer</span><span class="toc-page">6</span></li>
+    <li><span><span class="toc-num">4.</span>Le petit lexique pour s'y retrouver</span><span class="toc-page">7</span></li>
+    <li><span><span class="toc-num">5.</span>Se vérifier — étape par étape</span><span class="toc-page">9</span></li>
+    <li><span><span class="toc-num">6.</span>Découvrir le serveur — comment l'utiliser</span><span class="toc-page">12</span></li>
+    <li><span><span class="toc-num">7.</span>Vérifier votre statut à tout moment</span><span class="toc-page">15</span></li>
+    <li><span><span class="toc-num">8.</span>Et après ? Renouvellement et perte du rôle</span><span class="toc-page">16</span></li>
+    <li><span><span class="toc-num">9.</span>Questions fréquentes</span><span class="toc-page">17</span></li>
+    <li><span><span class="toc-num">10.</span>Si ça ne marche pas</span><span class="toc-page">19</span></li>
+    <li><span><span class="toc-num">11.</span>Vie privée et sécurité</span><span class="toc-page">20</span></li>
+    <li><span><span class="toc-num">12.</span>Qui contacter ?</span><span class="toc-page">21</span></li>
+  </ol>
+</div>
+
+<!-- ============ 1. BIENVENUE ============ -->
+<div class="page">
+  <h1>1. Bienvenue — à quoi sert ce guide ?</h1>
+
+  <p>Bonjour et bienvenue à Double Sens !</p>
+
+  <p>Ce guide vous accompagne pour <strong>vous identifier comme adhérent.e</strong>
+ sur le serveur Discord de l'association. C'est une démarche très 
+simple, mais qui demande quelques minutes d'attention. Si vous n'êtes 
+pas à l'aise avec l'informatique ou si Discord est tout nouveau pour 
+vous, <strong>pas d'inquiétude</strong> : ce guide est fait pour vous.</p>
+
+  <h2>Pourquoi cette vérification ?</h2>
+  <p>Le serveur Discord de Double Sens contient à la fois des espaces 
+ouverts à toutes et tous, et des espaces réservés aux adhérent.e.s à 
+jour de leur cotisation. Pour accéder aux espaces réservés, le serveur a
+ besoin de savoir que vous êtes bien adhérent.e. C'est le rôle du petit 
+assistant automatique appelé <strong>DSAuthentificator</strong>.</p>
+
+  <h2>En une phrase, comment ça marche ?</h2>
+  <p>Vous lui dites votre adresse email d'adhésion, il vous envoie un 
+code à 6 chiffres dans votre boîte mail, vous lui recopiez ce code, et 
+il vous donne le rôle <strong>Adhérent.e</strong>. Le rôle vous ouvre l'accès aux salons réservés. Voilà !</p>
+
+  <div class="callout callout-info">
+    <div class="callout-title">Ce que vous allez apprendre dans ce guide</div>
+    <ul style="margin: 1mm 0 0 0;">
+      <li>Comprendre ce qu'est Discord, si vous ne l'avez jamais utilisé.</li>
+      <li>Préparer ce dont vous avez besoin avant de commencer.</li>
+      <li>Suivre la procédure de vérification, étape par étape.</li>
+      <li>Savoir quoi faire si quelque chose ne marche pas.</li>
+      <li>Comprendre vos droits et la sécurité de vos données.</li>
+    </ul>
+  </div>
+
+  <h2>Une question, une difficulté ?</h2>
+  <p>Vous n'êtes pas seul.e. À tout moment, vous pouvez contacter la personne <strong>responsable numérique</strong> de Double Sens, qui est là pour vous aider. Vous trouverez ses coordonnées dans le chapitre 12 à la fin de ce guide.</p>
+
+  <p>Bonne lecture, et à très vite sur Discord !</p>
+</div>
+
+<!-- ============ 2. DISCORD C'EST QUOI ============ -->
+<div class="page">
+  <h1>2. Discord, c'est quoi ?</h1>
+
+  <p>Si vous connaissez déjà Discord, vous pouvez passer directement au chapitre 3. Sinon, voici l'essentiel à savoir.</p>
+
+  <h2>Une application pour discuter en groupe</h2>
+  <p>Discord est une <strong>application gratuite</strong> qui permet à 
+des groupes de personnes de discuter ensemble. C'est un peu comme un 
+mélange entre WhatsApp (pour les discussions) et un forum en ligne (pour
+ s'organiser par thèmes). On l'utilise pour échanger des messages, 
+partager des liens, organiser des événements, et parfois discuter en 
+direct à la voix.</p>
+
+  <h2>Comment Discord est organisé</h2>
+  <p>Discord fonctionne par <strong>« serveurs »</strong>. Un serveur, 
+c'est l'espace d'une communauté. Double Sens a son propre serveur, où se
+ retrouvent ses adhérent.e.s, ses bénévoles et son équipe. Chaque 
+serveur est divisé en <strong>« salons »</strong>, qui sont des fils de 
+discussion thématiques (un salon pour les annonces, un pour les 
+discussions générales, un pour partager vos réussites, etc.).</p>
+
+  <h2>Sur quels appareils ?</h2>
+  <p>Vous pouvez utiliser Discord :</p>
+  <ul>
+    <li><strong>Sur ordinateur</strong>, en ouvrant le site <code>discord.com</code> dans votre navigateur (Firefox, Chrome, Edge, Safari…). Aucun téléchargement n'est obligatoire.</li>
+    <li><strong>Sur téléphone ou tablette</strong>, en téléchargeant 
+l'application gratuite « Discord » depuis votre magasin d'applications 
+(Play Store sur Android, App Store sur iPhone).</li>
+    <li><strong>En téléchargeant le logiciel</strong> sur votre ordinateur, depuis <code>discord.com</code> (option recommandée si vous l'utilisez régulièrement).</li>
+  </ul>
+
+  <div class="callout callout-tip">
+    <div class="callout-title">Conseil</div>
+    Pour la première fois, le plus simple est d'ouvrir Discord <strong>dans votre navigateur sur ordinateur</strong>. Vous n'avez rien à installer et tout fonctionne immédiatement.
+  </div>
+
+  <h2>Avoir un compte Discord</h2>
+  <p>Pour utiliser Discord, vous avez besoin d'un compte personnel. Si vous n'en avez pas encore, le site <code>discord.com</code> vous propose d'en créer un gratuitement. Il vous demandera :</p>
+  <ul>
+    <li>Une adresse email (peu importe laquelle, ça peut être différent de celle de votre adhésion).</li>
+    <li>Un nom d'utilisateur (votre prénom convient très bien).</li>
+    <li>Un mot de passe.</li>
+    <li>Votre date de naissance.</li>
+  </ul>
+
+  <p>Une fois votre compte créé, vous êtes prêt.e à rejoindre le serveur de Double Sens.</p>
+
+  <h2>Rejoindre le serveur Double Sens</h2>
+  <p>Pour rejoindre le serveur, il vous faut un <strong>lien d'invitation</strong>.
+ Ce lien est disponible sur le flyer de l'association. Si vous ne le 
+retrouvez pas, demandez-le tout simplement au responsable numérique 
+(chapitre 12).</p>
+
+  <p>Quand vous cliquez sur ce lien, Discord s'ouvre et vous propose de rejoindre le serveur. Acceptez : vous y êtes !</p>
+
+  <div class="callout callout-info">
+    <div class="callout-title">Bon à savoir</div>
+    Rejoindre le serveur ne suffit pas pour accéder aux espaces réservés
+ aux adhérent.e.s : il faut ensuite faire la procédure de vérification 
+avec le bot DSAuthentificator. C'est précisément l'objet de ce guide. 
+Pas d'inquiétude, c'est rapide.
+  </div>
+</div>
+
+<!-- ============ 3. AVANT DE COMMENCER ============ -->
+<div class="page">
+  <h1>3. Avant de commencer</h1>
+
+  <p>Pour que la vérification se déroule sans accroc, vérifiez ces quatre points avant de vous lancer.</p>
+
+  <h2>1. Vous avez bien rejoint le serveur Discord</h2>
+  <p>Vous voyez le serveur <strong>Double Sens</strong> dans la barre 
+latérale gauche de Discord (avec son logo). Si ce n'est pas le cas, 
+retournez au chapitre 2 pour comprendre comment le rejoindre.</p>
+
+  <h2>2. Votre adhésion est à jour</h2>
+  <p>L'association tient à jour la liste de ses adhérent.e.s. Si votre 
+cotisation a bien été enregistrée et n'a pas expiré, tout ira bien. 
+Sinon, la vérification échouera. En cas de doute, contactez le bureau ou
+ le responsable numérique avant de commencer.</p>
+
+  <h2>3. Vous savez quel email vous avez utilisé pour adhérer</h2>
+  <p>C'est le point le plus important. Le bot vous demandera <strong>exactement</strong>
+ cette adresse — pas une autre. Si vous n'êtes plus sûr.e, regardez le 
+mail de bienvenue que vous avez reçu de Double Sens : il a été envoyé à 
+cette adresse-là. Sinon, demandez au responsable numérique.</p>
+
+  <div class="callout callout-warn">
+    <div class="callout-title">Attention aux fautes de frappe</div>
+    Une lettre de différence ou un point oublié, et le bot ne 
+reconnaîtra pas votre email. Le bot tolère les majuscules et les espaces
+ autour de l'adresse, mais une lettre erronée bloque la reconnaissance.
+  </div>
+
+  <h2>4. Vous pouvez consulter vos emails</h2>
+  <p>Le code de vérification arrivera dans votre boîte mail. Préparez-vous à pouvoir l'ouvrir rapidement : le code n'est valable que <strong>10 minutes</strong>.</p>
+
+  <div class="callout callout-warn">
+    <div class="callout-title">Pensez à vérifier vos spams</div>
+    Selon votre fournisseur de mail (Gmail, Orange, Free, La Poste, 
+Outlook…), il arrive que les messages automatiques atterrissent dans le 
+dossier <em>Courrier indésirable</em> ou <em>Spam</em>. Pensez à y jeter un œil si rien n'arrive dans votre boîte de réception principale au bout d'une minute.
+  </div>
+
+  <h2>Combien de temps ça va prendre ?</h2>
+  <p>Environ <strong>2 à 3 minutes</strong> en tout, en comptant l'aller-retour vers votre boîte mail. Pas plus.</p>
+</div>
+
+<!-- ============ 4. LEXIQUE ============ -->
+<div class="page">
+  <h1>4. Le petit lexique pour s'y retrouver</h1>
+
+  <p>Voici les mots qui reviendront dans la suite du guide. Pas besoin de tout retenir : revenez ici si un terme vous bloque.</p>
+
+  <dl class="gloss-list">
+    <dt>Application Discord</dt>
+    <dd>Le logiciel ou le site qui vous permet d'utiliser Discord. Vous y
+ avez accès depuis votre ordinateur, votre téléphone ou votre tablette.</dd>
+
+    <dt>Compte Discord</dt>
+    <dd>Votre identité personnelle sur Discord. Vous vous y connectez 
+avec votre email et votre mot de passe (ceux choisis lors de la création
+ de votre compte). C'est différent de votre email d'adhésion à Double 
+Sens.</dd>
+
+    <dt>Serveur</dt>
+    <dd>L'espace en ligne d'une communauté sur Discord. Double Sens a son propre serveur, qui regroupe ses adhérent.e.s.</dd>
+
+    <dt>Salon (ou « channel »)</dt>
+    <dd>Un espace de discussion à l'intérieur du serveur. Sur Discord, les salons de texte ont leur nom précédé du symbole <strong>#</strong> (par exemple : <code>#général</code>). Les salons de voix, eux, sont précédés d'un petit haut-parleur et permettent de parler en direct, comme au téléphone.</dd>
+
+    <dt>Catégorie de salons</dt>
+    <dd>Un regroupement de plusieurs salons sous un même titre, dans la barre latérale de gauche (par exemple <em>Accueil</em>, <em>Communauté</em>, <em>Entraide &amp; Services</em>). Les catégories aident à s'y retrouver. Vous pouvez les replier ou les déplier en cliquant sur la petite flèche à côté du nom.</dd>
+
+    <dt>Salon « forum »</dt>
+    <dd>Un type de salon particulier qui ressemble à un mini site d'annonces : chaque sujet est un <strong>post</strong> avec son propre titre, et les réponses se font à l'intérieur de ce post. Les salons <code>#demande</code> et <code>#proposition</code> de Double Sens fonctionnent comme ça.</dd>
+
+    <dt>Étiquette (ou « tag »)</dt>
+    <dd>Une petite vignette colorée que l'on attache à un post de forum pour indiquer son thème (par exemple : <em>informatique</em>, <em>bricolage</em>, <em>covoiturage</em>). Les étiquettes permettent de filtrer rapidement les posts qui vous intéressent.</dd>
+
+    <dt>Bot</dt>
+    <dd>Un assistant automatique. <strong>DSAuthentificator</strong> est le bot qui s'occupe de votre vérification. Il n'est pas humain : c'est un programme. On lui parle avec des « commandes ».</dd>
+
+    <dt>Commande (ou « slash command »)</dt>
+    <dd>Une instruction qu'on tape pour parler à un bot. Une commande commence toujours par une <strong>barre oblique</strong> (le caractère <code>/</code>), suivie d'un mot. Par exemple : <code>/verify</code>. Discord vous propose la liste des commandes disponibles dès que vous tapez le caractère <code>/</code>.</dd>
+
+    <dt>Modal (ou « petite fenêtre »)</dt>
+    <dd>Une petite fenêtre qui s'ouvre par-dessus Discord pour vous 
+demander une information (votre email, un code…). Vous remplissez les 
+champs, vous cliquez sur le bouton de validation, et la fenêtre se 
+ferme.</dd>
+
+    <dt>Rôle</dt>
+    <dd>Une étiquette attribuée à votre compte sur le serveur. Elle détermine ce à quoi vous avez le droit d'accéder. Le rôle <strong>Adhérent.e</strong> est celui que le bot vous donne automatiquement après vérification réussie.</dd>
+
+    <dt>Message privé (DM)</dt>
+    <dd>Un message envoyé directement à votre compte, en dehors des 
+salons publics. Le bot peut vous en envoyer pour vous prévenir, juste 
+avant le retrait de votre rôle, que votre cotisation est expirée.</dd>
+
+    <dt>OTP / Code de vérification</dt>
+    <dd>Le code à 6 chiffres que vous recevez par email. Il s'agit d'un 
+mot de passe à usage unique : il n'est valable qu'une seule fois et 
+expire au bout de 10 minutes.</dd>
+
+    <dt>Cotisation</dt>
+    <dd>Le paiement (annuel ou périodique) qui valide votre statut d'adhérent.e à Double Sens.</dd>
+
+    <dt>Délai de grâce</dt>
+    <dd>La période pendant laquelle vous gardez votre rôle même si votre
+ cotisation a expiré, pour vous laisser le temps de la renouveler. Par 
+défaut : 7 jours.</dd>
+  </dl>
+</div>
+
+<!-- ============ 5. PAS À PAS ============ -->
+<div class="page">
+  <h1>5. Se vérifier — étape par étape</h1>
+
+  <p>C'est le moment de la vérification. Suivez les étapes dans l'ordre.
+ Vous pouvez le faire indifféremment depuis un ordinateur, un téléphone 
+ou une tablette.</p>
+
+  <ol class="steps">
+    <li>
+      <div class="step-title">Ouvrez Discord et allez sur le serveur Double Sens</div>
+      <p>Lancez Discord sur l'appareil de votre choix. Dans la barre 
+latérale à gauche, repérez l'icône du serveur Double Sens (avec le logo 
+de l'association) et cliquez dessus. Vous voyez alors la liste des 
+salons.</p>
+      <p>Cliquez sur n'importe quel salon de texte, par exemple <code>#général</code>. Peu importe lequel : la commande de vérification fonctionne dans tous les salons.</p>
+    </li>
+
+    <li>
+      <div class="step-title">Cliquez dans la zone de saisie en bas et tapez <code>/verify</code></div>
+      <p>Tout en bas de l'écran, vous voyez une zone où on peut écrire 
+un message (« Envoyer un message dans #général »). Cliquez dedans pour 
+pouvoir y écrire.</p>
+      <p>Tapez le caractère <strong>/</strong> (barre oblique). Discord va automatiquement proposer une liste de commandes au-dessus de la zone de saisie.</p>
+      <p>Tapez ensuite <strong>verify</strong> à la suite. Vous devriez voir la commande <code>/verify</code> apparaître dans la liste avec une description. Cliquez dessus, ou appuyez simplement sur la touche <strong>Entrée</strong> de votre clavier.</p>
+      <div class="callout callout-tip">
+        <div class="callout-title">Sur téléphone ou tablette</div>
+        Sur mobile, appuyez sur l'icône en forme de barre oblique (<code>/</code>) à côté du champ de saisie pour faire apparaître la liste des commandes plus facilement.
+      </div>
+    </li>
+
+    <li>
+      <div class="step-title">Cliquez sur « Lier mon compte » puis saisissez votre email</div>
+      <p>Le bot affiche un message de bienvenue avec un bouton <strong>« Lier mon compte »</strong>. Cliquez dessus.</p>
+      <p>Une petite fenêtre s'ouvre avec un champ « Ton Email Adhérent ». Saisissez-y <strong>l'adresse exacte</strong> que vous avez fournie lors de votre adhésion à Double Sens. Faites attention à ne pas vous tromper de lettre.</p>
+      <p>Cliquez ensuite sur le bouton de validation (« Envoyer »).</p>
+      <p>Le bot vous répond brièvement pour confirmer qu'il a envoyé un code à votre adresse.</p>
+      <div class="callout callout-warn">
+        <div class="callout-title">Limite anti-abus</div>
+        Pour éviter les abus, vous ne pouvez pas demander plus de <strong>5 codes par heure</strong>. Si vous dépassez cette limite, attendez environ une heure avant de réessayer.
+      </div>
+    </li>
+
+    <li>
+      <div class="step-title">Allez chercher le code dans votre boîte mail</div>
+      <p>Ouvrez votre boîte mail (sur le même appareil ou sur un autre, 
+peu importe) et cherchez un nouvel email envoyé par Double Sens. Il 
+contient un <strong>code à 6 chiffres</strong>, par exemple <code>483921</code>.</p>
+      <p>Si vous ne le voyez pas dans votre boîte de réception 
+principale au bout d'une minute, regardez dans le dossier « Spam » ou « 
+Courrier indésirable ».</p>
+      <p>Notez ce code ou retenez-le. Il est valable <strong>10 minutes</strong>. Au-delà, il faudra recommencer la procédure depuis le début.</p>
+    </li>
+
+    <li>
+      <div class="step-title">Recopiez le code dans Discord</div>
+      <p>Retournez sur Discord. Le bot affiche un nouveau bouton <strong>« J'ai reçu mon code »</strong>. Cliquez dessus.</p>
+      <p>Une petite fenêtre s'ouvre, intitulée « Code de Sécurité ». Recopiez les 6 chiffres reçus par email dans le champ proposé.</p>
+      <p>Cliquez sur le bouton de validation.</p>
+      <p>Si tout est correct, le bot vous attribue immédiatement le rôle <strong>Adhérent.e</strong>.
+ Un message de confirmation apparaît, et vous voyez de nouveaux salons 
+devenir accessibles dans la liste à gauche. Bravo : vous êtes vérifié.e !</p>
+      <div class="callout callout-danger">
+        <div class="callout-title">Attention au nombre de tentatives</div>
+        Vous disposez de <strong>5 essais maximum</strong> pour saisir le bon code. Au-delà, le bot annule la procédure et vous devrez relancer <code>/verify</code> depuis le début. Mieux vaut prendre le temps de bien recopier le code une seule fois.
+      </div>
+    </li>
+  </ol>
+
+  <h2>Et après ?</h2>
+  <p>Vous n'avez plus rien à faire pour la vérification. Le rôle <strong>Adhérent.e</strong> reste actif tant que votre cotisation est à jour. Vous pouvez fermer Discord, ou continuer à explorer le serveur normalement.</p>
+
+  <p>De nouveaux salons sont apparus dans la barre latérale gauche : ce sont les espaces réservés aux adhérent.e.s. Pour comprendre à quoi sert chacun et comment les utiliser, rendez-vous au <strong>chapitre 6</strong> juste après.</p>
+
+  <div class="callout callout-magenta">
+    <div class="callout-title">Vous l'avez fait !</div>
+    Bienvenue parmi les adhérent.e.s vérifié.e.s sur Discord. N'hésitez 
+pas à vous présenter dans <code>#général</code>, à parcourir les salons 
+nouvellement débloqués, et à participer à la vie du serveur. Le 
+chapitre suivant vous fait visiter les lieux.
+  </div>
+</div>
+
+<!-- ============ 6. DÉCOUVRIR LE SERVEUR ============ -->
+<div class="page">
+  <h1>6. Découvrir le serveur — comment l'utiliser</h1>
+
+  <p>Maintenant que vous êtes vérifié.e, le serveur Double Sens vous ouvre tout son contenu. Voici une visite guidée des espaces que vous y trouverez, ce que chacun sert, et comment les utiliser au quotidien. Cette visite vous permettra de vous repérer en quelques minutes, même si vous n'aviez encore jamais utilisé ce genre d'outil.</p>
+
+  <div class="callout callout-info">
+    <div class="callout-title">Comment lire la barre latérale gauche</div>
+    Tous les salons du serveur sont listés dans la <strong>barre latérale gauche</strong> de Discord, regroupés en <strong>catégories</strong> (Accueil, Communauté, Entraide &amp; Services…). Les salons de texte sont précédés du symbole <code>#</code> et les salons de voix d'un petit haut-parleur. Cliquez sur le nom d'un salon pour l'ouvrir au centre de l'écran.
+  </div>
+
+  <h2>Avant la vérification : ce que vous voyez en arrivant</h2>
+  <p>Quand vous rejoignez le serveur sans avoir encore fait <code>/verify</code>, votre vue est volontairement réduite. Vous accédez uniquement à deux catégories de salons, qui contiennent l'essentiel pour vous accueillir et vous orienter :</p>
+
+  <h3>Catégorie « Support »</h3>
+  <ul>
+    <li><code>#aide-message</code> — pour poser une question ou signaler un problème (notamment lié à la vérification). Le responsable numérique y répond.</li>
+  </ul>
+
+  <h3>Catégorie « Accueil »</h3>
+  <ul>
+    <li><code>#bienvenue</code> — un mot d'accueil et les premiers repères pour bien démarrer.</li>
+    <li><code>#règlement</code> — les règles de vie du serveur. À lire une fois en arrivant.</li>
+    <li><code>#utiliser-serveur</code> — un mode d'emploi rapide du serveur lui-même (résumé condensé de ce guide).</li>
+    <li><code>#contact</code> — les coordonnées du bureau et du responsable numérique.</li>
+  </ul>
+
+  <p>C'est tout ce que vous voyez tant que vous n'êtes pas vérifié.e. Si vous attendez d'autres salons, c'est sans doute qu'il vous reste à faire la vérification du chapitre 5.</p>
+
+  <h2>Après la vérification : les espaces réservés s'ouvrent</h2>
+  <p>Une fois le rôle <strong>Adhérent.e</strong> attribué (vous le voyez apparaître à côté de votre pseudo, en rose), de nouvelles catégories deviennent visibles dans la barre latérale. Voici ce qu'on y fait.</p>
+
+  <h3>Catégorie « Communauté » — la vie du groupe</h3>
+  <ul>
+    <li><code>#général</code> — la place de village du serveur. On s'y présente, on discute, on partage des nouvelles. C'est le bon endroit pour dire bonjour quand on arrive.</li>
+    <li><code>#vos-réussites</code> — pour partager une entraide qui s'est bien passée, raconter une rencontre, fêter un coup de main réussi. Les histoires concrètes donnent envie aux autres de se lancer.</li>
+    <li><code>#sondage</code> — les sondages organisés par l'association (préférences pour un événement, choix de date, retours d'expérience). Votre voix compte, n'hésitez pas à voter.</li>
+    <li><code>#ameliorations</code> — vos idées et propositions pour faire évoluer l'association. Tout est lu : remarque, suggestion, critique constructive, idée de nouvelle activité.</li>
+  </ul>
+
+  <h3>Catégorie « Entraide &amp; Services » — le cœur de Double Sens</h3>
+  <ul>
+    <li><code>#annonces</code> — les annonces officielles de l'association (événements, infos importantes). Lecture seule pour la plupart : c'est l'équipe qui y publie.</li>
+    <li><code>#gazette</code> — la gazette de l'association. Actualités, retours sur les événements passés, à venir.</li>
+    <li><code>#demande</code> — un salon-forum pour <strong>demander de l'aide</strong>. Voir la section dédiée juste après.</li>
+    <li><code>#proposition</code> — un salon-forum pour <strong>proposer son aide</strong>. Voir la section dédiée juste après.</li>
+    <li><code>#cv-doublesens</code> — pour présenter brièvement vos compétences et ce sur quoi vous pouvez aider. Pratique pour que les autres adhérent.e.s sachent à qui s'adresser.</li>
+  </ul>
+
+  <div class="callout callout-tip">
+    <div class="callout-title">Astuce pour bien démarrer</div>
+    Si vous ne savez pas par où commencer, ouvrez <code>#général</code>, dites-y bonjour en quelques mots (prénom, ville ou quartier, ce qui vous a fait pousser la porte de l'asso). Les habitué.e.s viendront vous accueillir, et ça brise tout de suite la glace.
+  </div>
+
+  <h2>Comment fonctionnent <code>#demande</code> et <code>#proposition</code></h2>
+  <p>Ce sont les deux salons les plus importants pour l'entraide concrète. Ils ne ressemblent pas à un fil de discussion classique : ce sont des <strong>salons-forums</strong>. Concrètement, chaque demande (ou proposition) d'aide est un <strong>post</strong> séparé, avec son propre titre, et les réponses se font à l'intérieur de ce post. C'est plus clair, et rien ne se perd dans la masse.</p>
+
+  <h3>Les étiquettes de thème</h3>
+  <p>Tout en haut du forum, vous voyez une rangée d'étiquettes colorées qui correspondent aux grandes catégories d'entraide à Double Sens :</p>
+  <ul>
+    <li><strong>informatique</strong> — aide pour un ordinateur, un téléphone, une boîte mail, un site administratif…</li>
+    <li><strong>bricolage</strong> — petits travaux, montage de meubles, réparations simples.</li>
+    <li><strong>covoiturage</strong> — un trajet à proposer ou à demander.</li>
+    <li><strong>administratif</strong> — accompagnement pour une démarche, un courrier, un formulaire.</li>
+    <li><strong>jardinage</strong> — coup de main au jardin, échange de plantes, conseils.</li>
+    <li><strong>compagnie</strong> — passer un moment ensemble, café, balade, lecture.</li>
+    <li><strong>accompagnement</strong> — accompagner quelqu'un à un rendez-vous, à une course, à une sortie.</li>
+  </ul>
+
+  <p>Cliquez sur une étiquette pour ne voir que les posts de ce thème. Cliquez à nouveau pour tout réafficher.</p>
+
+  <h3>Publier une demande ou une proposition</h3>
+  <ol class="steps">
+    <li>
+      <div class="step-title">Ouvrez le bon forum</div>
+      <p><code>#demande</code> si vous avez besoin d'un coup de main, <code>#proposition</code> si vous proposez le vôtre. Pas d'inquiétude si vous vous trompez : un.e modérateur.rice peut déplacer le post.</p>
+    </li>
+    <li>
+      <div class="step-title">Cliquez sur « Nouveau post »</div>
+      <p>Le bouton est en haut à droite du forum. Une petite fenêtre s'ouvre pour rédiger votre post.</p>
+    </li>
+    <li>
+      <div class="step-title">Inspirez-vous du post « MODÈLE »</div>
+      <p>En tête de chaque forum se trouve un post épinglé intitulé <strong>MODÈLE</strong>. Il vous donne un format prêt à recopier : pseudo Discord, zone géographique où vous pouvez aider (ou avez besoin d'aide), description courte de ce que vous proposez ou recherchez. Vous n'avez qu'à remplir les blancs.</p>
+    </li>
+    <li>
+      <div class="step-title">Choisissez la ou les bonnes étiquettes</div>
+      <p>Avant de publier, sélectionnez l'étiquette qui correspond (informatique, bricolage…). Vous pouvez en mettre plusieurs si votre demande recoupe plusieurs thèmes.</p>
+    </li>
+    <li>
+      <div class="step-title">Publiez et restez à l'écoute</div>
+      <p>Une fois publié, votre post apparaît dans la liste du forum. Les personnes intéressées y répondent directement. Vous recevrez une notification à chaque nouveau message — cliquez sur le post pour lire et répondre.</p>
+    </li>
+  </ol>
+
+  <div class="callout callout-tip">
+    <div class="callout-title">Conseils pour un bon post</div>
+    Soyez précis.e mais court : <em>quoi</em>, <em>où</em>, <em>quand</em> en quelques lignes suffit. Indiquez votre disponibilité (jours, plages horaires) et votre zone géographique. Plus c'est clair, plus c'est facile pour quelqu'un de répondre « oui ».
+  </div>
+
+  <div class="callout callout-info">
+    <div class="callout-title">Une fois l'entraide réalisée</div>
+    Pensez à passer faire un petit retour dans <code>#vos-réussites</code> ! Ça motive tout le monde, et ça donne de la visibilité au travail de l'association.
+  </div>
+
+  <h2>Salons réservés à certains rôles</h2>
+  <p>Si vous êtes membre du CA et / ou dans les différentes équipes de DoubleSens vous aurez accés a des canaux spécifiques , si vous pensez qu'il y ai une erreur n'hésitez pas a contacter le réponsable numérique afin de résoudre les problèmes.Si vous ne les voyez pas, c'est normal : ces espaces ne concernent pas les adhérent.e.s en général. Le rôle <strong>Adhérent.e</strong> seul vous donne déjà accès à toute la vie du serveur.</p>
+
+  <div class="callout callout-magenta">
+    <div class="callout-title">Vous voilà chez vous</div>
+    Prenez le temps d'explorer, lisez quelques anciens posts pour vous faire une idée de l'ambiance, et n'ayez pas peur de poser une question même « bête ». À Double Sens, demander, c'est déjà aider.
+  </div>
+</div>
+
+<!-- ============ 7. STATUT ============ -->
+<div class="page">
+  <h1>7. Vérifier votre statut à tout moment</h1>
+
+  <p>Une fois vérifié.e, vous pouvez à tout moment demander au bot où 
+vous en êtes : votre cotisation est-elle bien à jour ? Êtes-vous 
+toujours bien lié.e à votre adhésion ? Un retrait de rôle est-il 
+programmé ? Pour ça, il existe une commande très simple : <code>/mon-statut</code>.</p>
+
+  <div class="cmd-card">
+    <div class="cmd-card-header">
+      <span class="cmd-card-name">/mon-statut</span>
+      <span class="cmd-card-badge badge-public">Tout le monde</span>
+    </div>
+    <p class="cmd-card-desc">Affiche votre situation actuelle : votre 
+email lié, l'état de votre cotisation, et le cas échéant la date à 
+laquelle votre rôle sera retiré.</p>
+  </div>
+
+  <h2>Comment l'utiliser</h2>
+  <p>De la même façon que <code>/verify</code> : sur n'importe quel salon, cliquez dans la zone de saisie en bas, tapez <code>/mon-statut</code>, et appuyez sur Entrée. Le bot vous répond immédiatement, dans un message visible uniquement par vous.</p>
+
+  <h2>Que vous dit cette commande ?</h2>
+  <p>Selon votre situation, le bot vous renvoie un message différent :</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:40%">Votre situation</th>
+        <th>Ce que le bot vous affiche</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Cotisation à jour</td>
+        <td>Votre email lié et la mention « Cotisation : à jour ».</td>
+      </tr>
+      <tr>
+        <td>Cotisation expirée, dans le délai de grâce</td>
+        <td>Votre email lié, la mention « Cotisation : non à jour », et la date à laquelle votre rôle sera retiré si vous ne renouvelez pas.</td>
+      </tr>
+      <tr>
+        <td>Pas encore vérifié.e</td>
+        <td>Un message vous invitant à lancer <code>/verify</code> pour vous identifier.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout callout-tip">
+    <div class="callout-title">Conseil pratique</div>
+    Lancez <code>/mon-statut</code> de temps en temps, surtout à 
+l'approche de la date de renouvellement de votre cotisation. Cela vous 
+évitera la mauvaise surprise d'une perte d'accès.
+  </div>
+
+  <h2>Tester que le bot répond</h2>
+  <p>Si vous avez l'impression que le bot ne répond plus, vous pouvez vérifier qu'il est bien en service avec :</p>
+
+  <div class="cmd-card">
+    <div class="cmd-card-header">
+      <span class="cmd-card-name">/ping</span>
+      <span class="cmd-card-badge badge-public">Tout le monde</span>
+    </div>
+    <p class="cmd-card-desc">Vérifie simplement que le bot est en ligne et fonctionnel. Il vous répond avec sa latence (le temps qu'il met à répondre).</p>
+  </div>
+</div>
+
+<!-- ============ 8. RENOUVELLEMENT ============ -->
+<div class="page">
+  <h1>8. Et après ? Renouvellement et perte du rôle</h1>
+
+  <p>Le bot vérifie chaque jour la liste des adhérent.e.s. Si votre 
+cotisation n'apparaît plus comme valide dans la base de l'association, 
+voici ce qui se passe.</p>
+
+  <h2>Le délai de grâce de 7 jours</h2>
+  <p>Bonne nouvelle : <strong>vous ne perdez pas votre rôle immédiatement</strong>.
+ Un délai de grâce de 7 jours (par défaut) vous est accordé. Pendant 
+cette période, vous gardez votre accès complet, ce qui vous laisse le 
+temps de régulariser votre cotisation.</p>
+
+  <h2>Le rappel par message privé</h2>
+  <p>Si l'option est activée par les administrateurs, vous recevez un message privé du bot <strong>juste avant</strong>
+ le retrait effectif du rôle (dans la dernière journée environ avant 
+l'échéance), pour vous prévenir et vous indiquer la marche à suivre pour
+ renouveler.</p>
+
+  <div class="callout callout-info">
+    <div class="callout-title">Pour recevoir ce rappel</div>
+    Votre paramétrage Discord doit autoriser les messages privés 
+provenant des membres du serveur. Si ce n'est pas le cas, le rappel 
+n'arrivera pas, et vous risquez de découvrir la perte du rôle au moment 
+où elle se produit. En cas de doute, demandez au responsable numérique 
+de vérifier ce réglage avec vous.
+  </div>
+
+  <h2>Le retrait du rôle</h2>
+  <p>À l'issue du délai de grâce, si la cotisation n'est toujours pas valide, le bot retire automatiquement le rôle <strong>Adhérent.e</strong>.
+ Vous perdez alors l'accès aux salons réservés. Vous restez membre du 
+serveur, mais vous ne voyez plus que les salons ouverts à toutes et 
+tous.</p>
+
+  <h2>Quand vous renouvelez</h2>
+  <p><strong>Avant la fin du délai de grâce :</strong> aucune action de 
+votre part n'est nécessaire. Dès que votre cotisation est mise à jour 
+dans la base, le retrait programmé est automatiquement annulé au 
+prochain passage du bot, et vous gardez votre rôle.</p>
+  <p><strong>Après la fin du délai de grâce :</strong> dès que votre 
+cotisation est mise à jour, le bot vous redonnera automatiquement le 
+rôle lors de sa prochaine vérification quotidienne. Vous n'avez pas à 
+refaire la procédure de vérification ni à recontacter qui que ce soit.</p>
+
+  <div class="callout callout-tip">
+    <div class="callout-title">Si vous quittez puis revenez sur le serveur</div>
+    Si vous quittez le serveur Discord (par erreur ou volontairement) et
+ que vous y revenez plus tard, le bot reconnaît votre liaison existante 
+et vous redonne automatiquement le rôle dès votre arrivée, à condition 
+que votre cotisation soit toujours à jour. Vous n'avez pas à refaire <code>/verify</code>.
+  </div>
+</div>
+
+<!-- ============ 9. FAQ ============ -->
+<div class="page">
+  <h1>9. Questions fréquentes</h1>
+
+  <div class="faq-item">
+    <p class="faq-q">Je n'ai pas reçu le code par email. Que faire ?</p>
+    <p class="faq-a">Patientez d'abord une à deux minutes : la livraison
+ peut prendre un peu de temps. Vérifiez ensuite votre dossier de 
+courrier indésirable (spam). Si rien n'apparaît, vérifiez l'orthographe 
+de l'adresse saisie. Si elle est correcte, contactez le responsable 
+numérique.</p>
+  </div>
+
+  <div class="faq-item">
+    <p class="faq-q">Le bot me dit que mon adhésion est introuvable, alors que j'ai bien payé.</p>
+    <p class="faq-a">Deux explications possibles. Soit l'email saisi 
+n'est pas exactement celui enregistré dans la base de l'association 
+(attention aux fautes de frappe ou à un compte secondaire). Soit votre 
+adhésion n'a pas encore été enregistrée par le bureau. Dans les deux 
+cas, contactez le responsable numérique ou le bureau de Double Sens.</p>
+  </div>
+
+  <div class="faq-item">
+    <p class="faq-q">Puis-je utiliser un autre email que celui de mon adhésion ?</p>
+    <p class="faq-a">Non. Le bot s'appuie sur l'adresse présente dans la
+ base des adhérent.e.s. Si vous voulez changer d'email, faites d'abord 
+la mise à jour auprès du bureau, puis relancez <code>/verify</code> avec votre nouvelle adresse.</p>
+  </div>
+
+  <div class="faq-item">
+    <p class="faq-q">Mon code est expiré, comment en obtenir un nouveau ?</p>
+    <p class="faq-a">Relancez simplement <code>/verify</code>. Un nouveau code à 6 chiffres vous sera envoyé. Attention : vous êtes limité.e à 5 demandes par heure.</p>
+  </div>
+
+  <div class="faq-item">
+    <p class="faq-q">J'ai changé d'ordinateur ou de téléphone, dois-je refaire la vérification ?</p>
+    <p class="faq-a">Non. La liaison se fait entre votre <em>compte</em>
+ Discord et votre adhésion, pas avec un appareil. Tant que vous restez 
+connecté.e avec le même compte Discord, vous gardez votre rôle, peu 
+importe l'appareil que vous utilisez.</p>
+  </div>
+
+  <div class="faq-item">
+    <p class="faq-q">J'ai quitté le serveur par erreur. Vais-je devoir tout refaire ?</p>
+    <p class="faq-a">Non. Si vous revenez sur le serveur avec le même 
+compte Discord, le bot reconnaît votre liaison existante et vous redonne
+ automatiquement le rôle dès votre arrivée, à condition que votre 
+cotisation soit toujours à jour.</p>
+  </div>
+
+  <div class="faq-item">
+    <p class="faq-q">Puis-je utiliser deux comptes Discord avec la même adhésion ?</p>
+    <p class="faq-a">Non. Une adhésion est liée à un seul compte 
+Discord. Si vous changez de compte, contactez le responsable numérique :
+ il pourra rompre la liaison existante, ce qui vous permettra ensuite de
+ relancer <code>/verify</code> depuis votre nouveau compte.</p>
+  </div>
+
+  <div class="faq-item">
+    <p class="faq-q">Le bot peut-il lire mes messages ou voir mes données privées ?</p>
+    <p class="faq-a">Non. Le bot ne lit que les commandes que vous lui adressez explicitement (celles qui commencent par <code>/</code>).
+ Il ne consulte aucun autre message, ni vos messages privés, ni les 
+conversations des salons. Voir aussi le chapitre 11 sur la vie privée.</p>
+  </div>
+
+  <div class="faq-item">
+    <p class="faq-q">Combien de temps mon rôle reste-t-il actif ?</p>
+    <p class="faq-a">Tant que votre cotisation est à jour. Le bot 
+vérifie automatiquement chaque jour. Vous n'avez aucune action 
+récurrente à effectuer de votre côté.</p>
+  </div>
+
+  <div class="faq-item">
+    <p class="faq-q">J'ai été retiré.e du rôle Adhérent.e alors que j'ai payé. Pourquoi ?</p>
+    <p class="faq-a">Le plus souvent, le paiement n'a pas encore été 
+enregistré dans la base de l'association, ou la mise à jour n'a pas été 
+faite. Contactez le bureau pour vérifier votre statut. Une fois la base à
+ jour, le bot vous rendra le rôle automatiquement lors de la 
+vérification quotidienne suivante — sans aucune action de votre part.</p>
+  </div>
+
+  <div class="faq-item">
+    <p class="faq-q">Suis-je obligé.e d'utiliser Discord pour rester adhérent.e ?</p>
+    <p class="faq-a">Non, absolument pas. Discord est un espace de vie 
+associative supplémentaire, pas une obligation. Si vous n'utilisez pas 
+Discord, votre adhésion reste pleinement valable et tous les autres 
+canaux de communication de Double Sens (mails, événements, etc.) 
+continuent de fonctionner pour vous.</p>
+  </div>
+
+  <div class="faq-item">
+    <p class="faq-q">Je n'arrive vraiment pas à m'en sortir, je peux demander de l'aide ?</p>
+    <p class="faq-a">Bien sûr ! Le responsable numérique est là pour ça.
+ Voir ses coordonnées au chapitre 12. Ce n'est pas une honte de demander
+ de l'aide : Discord et l'informatique en général demandent de 
+l'habitude.</p>
+  </div>
+</div>
+
+<!-- ============ 10. DÉPANNAGE ============ -->
+<div class="page">
+  <h1>10. Si ça ne marche pas</h1>
+
+  <p>Voici les principaux blocages que vous pouvez rencontrer, et la 
+marche à suivre pour chacun. Si rien ne fonctionne, n'hésitez pas à 
+contacter le responsable numérique (chapitre 12).</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:42%">Symptôme</th>
+        <th>Action recommandée</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>La commande <code>/verify</code> n'apparaît pas dans la liste quand je tape <code>/</code>.</td>
+        <td>Vérifiez que vous êtes bien sur le serveur Double Sens (et 
+non sur un autre serveur Discord). Quittez Discord et relancez 
+l'application. Si le problème persiste, contactez le responsable 
+numérique.</td>
+      </tr>
+      <tr>
+        <td>Le bot ne répond pas après <code>/verify</code>.</td>
+        <td>Lancez <code>/ping</code> pour vérifier que le bot est en 
+ligne. S'il ne répond pas non plus, le bot est probablement 
+temporairement indisponible. Signalez-le au responsable numérique.</td>
+      </tr>
+      <tr>
+        <td>Email saisi mais aucun code reçu dans la boîte mail.</td>
+        <td>Patientez 2 minutes, vérifiez le dossier spam, contrôlez l'orthographe de l'adresse. Si rien ne vient, relancez <code>/verify</code> avec une orthographe revue.</td>
+      </tr>
+      <tr>
+        <td>Erreur « Trop de tentatives ».</td>
+        <td>Vous avez dépassé 5 envois en une heure. Patientez environ une heure avant de réessayer.</td>
+      </tr>
+      <tr>
+        <td>Le bot indique « Session expirée » ou « Trop de tentatives ».</td>
+        <td>Soit vous avez dépassé 5 tentatives de code, soit le code a expiré (10 minutes). Relancez <code>/verify</code> pour obtenir une nouvelle session avec un nouveau code.</td>
+      </tr>
+      <tr>
+        <td>Erreur « Email introuvable ».</td>
+        <td>Votre email n'est pas reconnu. Vérifiez que vous utilisez 
+bien celui fourni à l'association. Si oui, contactez le bureau pour 
+vérifier que votre adhésion est bien enregistrée.</td>
+      </tr>
+      <tr>
+        <td>Cotisation à jour mais rôle Adhérent.e non attribué après vérification.</td>
+        <td>Cas rare. Quittez puis revenez sur le serveur : le bot vous 
+réattribuera le rôle automatiquement. Sinon, contactez le responsable 
+numérique.</td>
+      </tr>
+      <tr>
+        <td>Je ne reçois plus les messages privés du bot.</td>
+        <td>Vérifiez les paramètres de confidentialité de votre compte 
+Discord (autoriser les messages privés des membres du serveur). En cas 
+de doute, le responsable numérique peut vous accompagner.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout callout-magenta">
+    <div class="callout-title">L'aide humaine reste la meilleure</div>
+    Tous ces dépannages se règlent généralement en quelques minutes avec
+ l'aide d'une personne au bout du fil. N'hésitez vraiment pas à demander
+ : c'est plus rapide pour tout le monde.
+  </div>
+</div>
+
+<!-- ============ 11. VIE PRIVÉE ============ -->
+<div class="page">
+  <h1>11. Vie privée et sécurité</h1>
+
+  <p>Le bot a été conçu en gardant à l'esprit la protection de vos données. Voici, en clair, ce qu'il fait et ce qu'il ne fait pas.</p>
+
+  <h2>Quelles données sont conservées ?</h2>
+  <ul>
+    <li>Votre <strong>identifiant Discord</strong> (un numéro unique qui désigne votre compte). Il n'est pas votre nom ni votre email Discord.</li>
+    <li>L'<strong>email d'adhésion</strong> que vous avez utilisé pour vous vérifier, lié à votre adhésion.</li>
+    <li>Le <strong>statut de votre cotisation</strong>, déjà géré par l'association indépendamment de Discord.</li>
+  </ul>
+
+  <h2>Quelles données ne sont pas conservées ?</h2>
+  <ul>
+    <li>Le contenu de vos messages sur le serveur.</li>
+    <li>Vos messages privés.</li>
+    <li>Votre activité hors des commandes du bot.</li>
+    <li>Les noms d'utilisateur ou pseudos que vous portez sur Discord.</li>
+  </ul>
+
+  <h2>Comment les codes sont-ils protégés ?</h2>
+  <p>Les codes à 6 chiffres sont générés par un procédé cryptographique 
+sécurisé (et non par un simple tirage aléatoire). Chaque code expire au 
+bout de 10 minutes et ne peut être utilisé qu'une seule fois. Au-delà de
+ 5 mauvaises tentatives, la session est invalidée pour décourager les 
+essais malveillants.</p>
+
+  <h2>Qui peut intervenir sur votre liaison ?</h2>
+  <p>Seuls les administrateurs disposant du rôle prévu à cet effet 
+peuvent intervenir manuellement (rompre la liaison, annuler un retrait 
+programmé). Toutes leurs actions sont tracées dans un canal de logs 
+dédié, avec mention de l'administrateur auteur.</p>
+
+  <h2>Vos droits</h2>
+  <div class="callout callout-info">
+    <div class="callout-title">Conformité au RGPD</div>
+    Conformément au Règlement Général sur la Protection des Données (RGPD), vous pouvez à tout moment :
+    <ul style="margin: 1mm 0 0 0;">
+      <li>demander l'accès aux données vous concernant ;</li>
+      <li>demander la rectification de ces données ;</li>
+      <li>demander la suppression de la liaison entre votre compte Discord et votre adhésion ;</li>
+      <li>demander la suppression de vos données personnelles.</li>
+    </ul>
+    Pour cela, adressez-vous au bureau de Double Sens ou au responsable numérique.
+  </div>
+
+  <h2>Sécurité de votre compte</h2>
+  <p>Le bot ne vous demandera <strong>jamais</strong> votre mot de passe
+ Discord, ni aucun autre mot de passe. Il vous demandera uniquement 
+votre email d'adhésion et le code à 6 chiffres reçu. Si quelqu'un vous 
+demande votre mot de passe en se faisant passer pour le bot, c'est une 
+tentative d'arnaque : signalez-le au responsable numérique.</p>
+</div>
+
+<!-- ============ 12. CONTACT ============ -->
+<div class="page">
+  <h1>12. Qui contacter ?</h1>
+
+  <p>Quel que soit votre besoin, voici à qui vous adresser. N'hésitez 
+pas : poser une question est toujours mieux que rester bloqué.e.</p>
+
+  <div class="contact-card">
+    <div class="contact-card-title">Pour tout ce qui concerne Discord et le bot</div>
+    <p>Le <strong>responsable numérique</strong> de Double Sens est votre interlocuteur privilégié pour :</p>
+    <ul>
+      <li>une difficulté avec la procédure de vérification ;</li>
+      <li>un problème pour rejoindre le serveur ou pour utiliser Discord ;</li>
+      <li>une question sur vos données ou vos paramètres ;</li>
+      <li>tout dysfonctionnement du bot.</li>
+    </ul>
+    <p style="margin-bottom: 0;">Vous pouvez le contacter par mail, ou directement sur le serveur Discord (canal <code>#aide-message</code>)</p>
+  </div>
+
+  <div class="contact-card">
+    <div class="contact-card-title">Pour tout ce qui concerne votre adhésion</div>
+    <p>Le <strong>bureau de l'association</strong> est l'interlocuteur pour :</p>
+    <ul>
+      <li>vérifier ou mettre à jour le statut de votre cotisation ;</li>
+      <li>changer l'email enregistré pour votre adhésion ;</li>
+      <li>toute question sur la vie associative et vos droits d'adhérent.e ;</li>
+      <li>renouvellement, démission, etc.</li>
+    </ul>
+    <p style="margin-bottom: 0;">Vous trouverez les coordonnées dans <code>#contact</code> ou en demandant aux personnes du serveur Discord.</p>
+  </div>
+
+  <h2>Avant de contacter quelqu'un</h2>
+  <p>Vous pouvez faire un premier diagnostic vous-même grâce au chapitre
+ 10 (« Si ça ne marche pas »). Mais s'il faut absolument contacter 
+quelqu'un, ces quelques informations facilitent la prise en charge :</p>
+  <ul>
+    <li>Le moment où le problème s'est produit (date, heure approximative).</li>
+    <li>Le message d'erreur exact, si vous en avez vu un.</li>
+    <li>L'email d'adhésion que vous avez utilisé.</li>
+    <li>L'appareil que vous utilisiez (ordinateur, téléphone, modèle si possible).</li>
+  </ul>
+
+  <p>Une capture d'écran de l'erreur est aussi très utile, mais ne vous tracassez pas si vous ne savez pas en faire.</p>
+
+  <div class="callout callout-magenta">
+    <div class="callout-title">Merci de faire vivre Double Sens !</div>
+    Votre adhésion compte, votre présence sur Discord aussi. Bonne 
+continuation à vous, et au plaisir de vous croiser sur le serveur.
+  </div>
+
+  <div class="doc-footer">
+    DSAuthentificator — Guide Adhérent.e — Association Double Sens — Version 1.3 — Mai 2026
+  </div>
+</div>
+
+
+
+<script src="Guide%20d'utilisation%20%E2%80%94%20DSAuthentificator%20(Double%20Senspdf_files/app.js" type="text/javascript"></script></body></html>
