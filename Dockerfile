@@ -17,7 +17,8 @@ ENV PORT=3000
 WORKDIR /app
 
 COPY --from=build /app/dist ./dist
-COPY server.ts ./server.ts
+COPY deno.json deno.lock server.ts ./
+RUN deno cache server.ts
 
 USER deno
 
